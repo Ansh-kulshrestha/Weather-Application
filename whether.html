@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weather App</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(to top right, #74ebd5, #9face6); /* Soft sky gradient */
+      color: #fff;
+    }
+
+    .app-wrap {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px 15px;
+      gap: 10px;
+    }
+
+    header input {
+      width: 100%;
+      max-width: 280px;
+      padding: 10px 15px;
+      border: none;
+      outline: none;
+      background-color: rgba(255, 255, 255, 0.3);
+      border-radius: 16px;
+      border-bottom: 3px solid gray;
+      color: #313131;
+      font-size: 20px;
+      font-weight: 300;
+      transition: 0.2s ease-out;
+    }
+
+    header input:focus {
+      background-color: rgba(255, 255, 255, 0.6);
+    }
+
+    .favorite-btn {
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 20px;
+      background: #ff7e5f;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .favorite-btn:hover {
+      background: #eb5e3e;
+    }
+
+    main {
+      flex: 1 1 100%;
+      padding: 25px 25px 50px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .location .city {
+      font-size: 32px;
+      font-weight: 500;
+      margin-bottom: 5px;
+    }
+
+    .location .date {
+      font-size: 16px;
+    }
+
+    .current .temp {
+      font-size: 102px;
+      font-weight: 900;
+      margin: 30px 0px;
+      text-shadow: 2px 10px rgba(0, 0, 0, 0.6);
+    }
+
+    .current .temp span {
+      font-weight: 500;
+    }
+
+    .current .weather {
+      font-size: 32px;
+      font-weight: 700;
+      font-style: italic;
+      margin-bottom: 15px;
+      text-shadow: 0px 3px rgba(0, 0, 0, 0.4);
+    }
+
+    .current .hi-low {
+      font-size: 24px;
+      font-weight: 500;
+      text-shadow: 0px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    .clothing-suggestion {
+      margin-top: 30px;
+      font-size: 20px;
+    }
+
+    .favorites {
+      margin-top: 20px;
+    }
+
+    .favorites h3 {
+      margin-bottom: 10px;
+      font-size: 20px;
+    }
+
+    .favorites-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .favorites-list button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 16px;
+      background-color: #fff;
+      color: #333;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background-color 0.2s ease;
+    }
+
+    .favorites-list button:hover {
+      background-color: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-wrap">
+    <header>
+      <input type="text" id="city-input" autocomplete="off" placeholder="Enter your city..." />
+      <button class="favorite-btn" id="save-btn">+ Save to Favorites</button>
+    </header>
+
+    <main>
+      <section class="location" id="location"></section>
+      <div class="current" id="current"></div>
+      <div class="clothing-suggestion" id="clothing-suggestion"></div>
+
+      <div class="favorites">
+        <h3>Favorite Cities</h3>
+        <div class="favorites-list" id="favorites-list">
+          <!-- Favorite city buttons will go here -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const api = {
+      key: "fcc8de7015bbb202209bbf0261babf4c",
+      base: "https://api.openweathermap.org/data/2.5/"
+    };
+
+    const cityInput = document.getElementById('city-input');
+    const locationDiv = document.getElementById('location');
+    const currentDiv = document.getElementById('current');
+    const clothingSuggestionDiv = document.getElementById('clothing-suggestion');
+    const saveBtn = document.getElementById('save-btn');
+    const favoritesList = document.getElementById('favorites-list');
+
+    let favorites = [];
+
+    cityInput.addEventListener('keypress', function (evt) {
+      if (evt.key === 'Enter') {
+        const city = cityInput.value.trim();
+        getWeatherData(city);
+      }
+    });
+
+    saveBtn.addEventListener('click', () => {
+      const city = cityInput.value.trim();
+      if (city && !favorites.includes(city)) {
+        favorites.push(city);
+        updateFavoritesUI();
+      }
+    });
+
+    function updateFavoritesUI() {
+      favoritesList.innerHTML = "";
+      favorites.forEach(city => {
+        const btn = document.createElement('button');
+        btn.textContent = city;
+        btn.onclick = () => getWeatherData(city);
+        favoritesList.appendChild(btn);
+      });
+    }
+
+    function getWeatherData(city) {
+      fetch(`${api.base}weather?q=${city}&units=metric&APPID=${api.key}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.cod === 200) {
+            displayWeatherData(data);
+            suggestClothing(data.main.temp);
+          } else {
+            locationDiv.innerHTML = `<div class="city">City not found</div>`;
+            currentDiv.innerHTML = "";
+            clothingSuggestionDiv.innerHTML = "";
+          }
+        })
+        .catch(err => console.error(err));
+    }
+
+    function displayWeatherData(weather) {
+      const city = weather.name;
+      const country = weather.sys.country;
+      const now = new Date();
+
+      locationDiv.innerHTML = `
+        <div class="city">${city}, ${country}</div>
+        <div class="date">${dateBuilder(now)}</div>
+      `;
+
+      currentDiv.innerHTML = `
+        <div class="temp">${Math.round(weather.main.temp)}<span>°c</span></div>
+        <div class="weather">${weather.weather[0].main}</div>
+        <div class="hi-low">${Math.round(weather.main.temp_min)}°c / ${Math.round(weather.main.temp_max)}°c</div>
+      `;
+    }
+
+    function dateBuilder(d) {
+      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    function suggestClothing(temp) {
+      let suggestion = "Based on the current temperature, ";
+      if (temp <= 0) {
+        suggestion += "it's freezing! Wear a heavy coat, gloves, and a hat.";
+      } else if (temp > 0 && temp <= 10) {
+        suggestion += "it's cold. Consider wearing a coat and a scarf.";
+      } else if (temp > 10 && temp <= 20) {
+        suggestion += "it's cool. A jacket or a sweater should be fine.";
+      } else if (temp > 20 && temp <= 30) {
+        suggestion += "it's warm. Light clothing like t-shirts and shorts are recommended.";
+      } else {
+        suggestion += "it's hot! Wear minimal clothing and stay hydrated.";
+      }
+      clothingSuggestionDiv.innerText = suggestion;
+    }
+  </script>
+</body>
+</html>
